@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "restaurant"],
+      enum: ["user", "restaurant","admin"],
       required: true,
     },
     isVerified: {

@@ -2,9 +2,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { sendOtp, verifyOtp } from "../services/otp.service.js";
 
-
-
-// 🔥 LOGIN API
+// LOGIN
 export const loginController = async (req, res, next) => {
   try {
     let { mobile, role } = req.body;
@@ -20,39 +18,40 @@ export const loginController = async (req, res, next) => {
 
     const user = await User.findOne({ mobile, role });
 
-    // ✅ If user exists & already verified → direct login
     if (user && user.isVerified) {
       const token = jwt.sign(
-        { userId: user._id, role: user.role },
+        { userId: user._id },
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
 
-      return res.status(200).json({
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      return res.json({
         success: true,
         message: "Login successful",
-        token,
         user,
       });
     }
 
-    // ❗ Otherwise send OTP
     await sendOtp(mobile, role);
 
-    return res.status(200).json({
+    return res.json({
       success: true,
-      message: "OTP sent for verification",
+      message: "OTP sent",
       requiresOtp: true,
     });
-
   } catch (error) {
     next(error);
   }
 };
 
-
-
-// 🔥 VERIFY OTP & COMPLETE LOGIN
+// VERIFY OTP
 export const verifyOtpController = async (req, res, next) => {
   try {
     let { mobile, otp } = req.body;
@@ -78,6 +77,14 @@ export const verifyOtpController = async (req, res, next) => {
 
     let user = await User.findOne({ mobile, role });
 
+    // 🚫 prevent admin self creation
+    if (!user && role === "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Admin account does not exist",
+      });
+    }
+
     if (!user) {
       user = await User.create({
         mobile,
@@ -90,18 +97,23 @@ export const verifyOtpController = async (req, res, next) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    return res.status(200).json({
-      success: true,
-      message: "Login successful",
-      token,
-      user,
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
+    return res.json({
+      success: true,
+      message: "Login successful",
+      user,
+    });
   } catch (error) {
     next(error);
   }
