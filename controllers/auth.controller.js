@@ -2,7 +2,11 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { sendOtp, verifyOtp } from "../services/otp.service.js";
 
-// LOGIN
+/**
+ * ============================
+ * LOGIN CONTROLLER
+ * ============================
+ */
 export const loginController = async (req, res, next) => {
   try {
     let { mobile, role } = req.body;
@@ -15,19 +19,31 @@ export const loginController = async (req, res, next) => {
     }
 
     mobile = mobile.trim();
+    role = role.trim();
+
+    // 🔒 Only allow user & restaurant roles
+    const allowedRoles = ["user", "restaurant"];
+
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role selected",
+      });
+    }
 
     const user = await User.findOne({ mobile, role });
 
+    // If user exists and already verified → direct login
     if (user && user.isVerified) {
       const token = jwt.sign(
-        { userId: user._id },
+        { userId: user._id, role: user.role },
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
 
       res.cookie("token", token, {
         httpOnly: true,
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
@@ -39,11 +55,12 @@ export const loginController = async (req, res, next) => {
       });
     }
 
+    // Otherwise send OTP
     await sendOtp(mobile, role);
 
     return res.json({
       success: true,
-      message: "OTP sent",
+      message: "OTP sent successfully",
       requiresOtp: true,
     });
   } catch (error) {
@@ -51,7 +68,11 @@ export const loginController = async (req, res, next) => {
   }
 };
 
-// VERIFY OTP
+/**
+ * ============================
+ * VERIFY OTP CONTROLLER
+ * ============================
+ */
 export const verifyOtpController = async (req, res, next) => {
   try {
     let { mobile, otp } = req.body;
@@ -66,6 +87,7 @@ export const verifyOtpController = async (req, res, next) => {
     mobile = mobile.trim();
     otp = otp.trim();
 
+    // 🔥 Verify OTP and get role from OTP service
     const role = await verifyOtp(mobile, otp);
 
     if (!role) {
@@ -75,16 +97,17 @@ export const verifyOtpController = async (req, res, next) => {
       });
     }
 
-    let user = await User.findOne({ mobile, role });
-
-    // 🚫 prevent admin self creation
-    if (!user && role === "admin") {
+    // 🔒 Double safety — block admin from OTP system
+    if (role === "admin") {
       return res.status(403).json({
         success: false,
-        message: "Admin account does not exist",
+        message: "Admin login is not allowed via OTP",
       });
     }
 
+    let user = await User.findOne({ mobile, role });
+
+    // Create new user if not exists
     if (!user) {
       user = await User.create({
         mobile,
@@ -97,14 +120,14 @@ export const verifyOtpController = async (req, res, next) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });

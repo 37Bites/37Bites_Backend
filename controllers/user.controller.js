@@ -39,41 +39,12 @@ export const createUser = async (req, res, next) => {
 
 // GET ALL USERS
 // GET /api/users?sortBy=role
+// GET ALL USERS
+// GET /api/users
 export const getAllUsers = async (req, res) => {
   try {
-    const { sortBy, order = "desc" } = req.query;
-
-    // If sorting by role (user first)
-    if (sortBy === "role") {
-      const users = await User.aggregate([
-        {
-          $addFields: {
-            rolePriority: {
-              $cond: [{ $eq: ["$role", "user"] }, 1, 2],
-            },
-          },
-        },
-        {
-          $sort: { rolePriority: 1 },
-        },
-        {
-          $project: { rolePriority: 0 },
-        },
-      ]);
-
-      return res.status(200).json({
-        success: true,
-        count: users.length,
-        data: users,
-      });
-    }
-
-    // Default sorting
-    const sortOrder = order === "asc" ? 1 : -1;
-
-    const users = await User.find().sort({
-      [sortBy || "createdAt"]: sortOrder,
-    });
+    // Fetch only users with role = "user"
+    const users = await User.find({ role: "user" });
 
     res.status(200).json({
       success: true,
@@ -87,7 +58,6 @@ export const getAllUsers = async (req, res) => {
     });
   }
 };
-
 // GET SINGLE USER
 export const getUserById = async (req, res, next) => {
   try {

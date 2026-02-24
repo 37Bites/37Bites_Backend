@@ -26,7 +26,8 @@ export const sendOtp = async (mobile, role) => {
     .update(otp)
     .digest("hex");
 
-  await Otp.deleteMany({ mobile });
+  // 🔥 delete only same mobile + role
+  await Otp.deleteMany({ mobile, role });
 
   await Otp.create({
     mobile,
@@ -48,14 +49,13 @@ export const verifyOtp = async (mobile, otp) => {
   mobile = normalizeMobile(mobile);
   otp = otp.trim();
 
+  // 🔥 get latest OTP for that mobile
   const record = await Otp.findOne({ mobile }).sort({ createdAt: -1 });
-
-  console.log("DB Record:", record);
 
   if (!record) return false;
 
   if (record.expiresAt < new Date()) {
-    await Otp.deleteMany({ mobile });
+    await Otp.deleteMany({ mobile, role: record.role });
     return false;
   }
 
@@ -64,14 +64,12 @@ export const verifyOtp = async (mobile, otp) => {
     .update(otp)
     .digest("hex");
 
-  console.log("Stored Hash:", record.otp);
-  console.log("Generated Hash:", hashedOtp);
-
   if (record.otp !== hashedOtp) return false;
 
   const role = record.role;
 
-  await Otp.deleteMany({ mobile });
+  // delete only this role OTP
+  await Otp.deleteMany({ mobile, role });
 
-  return role;
+  return role; // 🔥 return role instead of true
 };
