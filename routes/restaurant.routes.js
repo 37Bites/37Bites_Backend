@@ -8,15 +8,32 @@ import {
   getRestaurantById,
   updateRestaurant,
   deleteRestaurant,
+  updateRestaurantStatus,
+  toggleRestaurantOpen,
 } from "../controllers/restaurant.controller.js";
 
 const router = express.Router();
 
-// Admin Protected Routes
+// Create restaurant
 router.post("/", protect, adminOnly, createRestaurant);
+
+// Get all restaurants
 router.get("/", protect, adminOnly, getAllRestaurants);
+
+// Get single restaurant
 router.get("/:id", protect, adminOnly, getRestaurantById);
+
+// Update restaurant
 router.put("/:id", protect, adminOnly, updateRestaurant);
+
+// Delete restaurant
 router.delete("/:id", protect, adminOnly, deleteRestaurant);
+
+
+// Update restaurant approval/status
+router.patch("/:id/status", protect, adminOnly, updateRestaurantStatus);
+
+// Toggle open/close restaurant
+router.patch("/:id/toggle-open", protect, adminOnly, toggleRestaurantOpen);
 
 export default router;

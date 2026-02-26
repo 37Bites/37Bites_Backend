@@ -9,6 +9,8 @@ import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import restaurantRoutes from "./routes/restaurant.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import deliveryRoutes from "./routes/delivery.routes.js";
+import adminDeliveryRoutes from "./routes/admin.delivery.routes.js";
 import errorHandler from "./middlewares/error.middleware.js";
 
 const app = express();
@@ -69,6 +71,8 @@ app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/restaurants", restaurantRoutes);
 app.use("/api/v1/admin", adminRoutes);
 
+app.use("/api/v1/delivery", deliveryRoutes);
+app.use("/api/v1/admin/delivery", adminDeliveryRoutes);
 /* ===============================
    ERROR HANDLER (ALWAYS LAST)
 ================================= */

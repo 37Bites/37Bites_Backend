@@ -8,9 +8,16 @@ import User from "../models/User.js";
  */
 export const createRestaurant = async (req, res) => {
   try {
-    const { userId, name, description, address, image } = req.body;
+    const {
+      userId,
+      name,
+      description,
+      address,
+      image,
+      commissionPercentage,
+      canAddCategory,
+    } = req.body;
 
-    // Check if user exists and is restaurant role
     const user = await User.findById(userId);
 
     if (!user || user.role !== "restaurant") {
@@ -20,7 +27,6 @@ export const createRestaurant = async (req, res) => {
       });
     }
 
-    // Check if restaurant profile already exists
     const existing = await Restaurant.findOne({ user: userId });
 
     if (existing) {
@@ -32,10 +38,12 @@ export const createRestaurant = async (req, res) => {
 
     const restaurant = await Restaurant.create({
       user: userId,
-      name: name || "",
-      description: description || "",
-      address: address || "",
-      image: image || "",
+      name,
+      description,
+      address,
+      image,
+      commissionPercentage: commissionPercentage || 10,
+      canAddCategory: canAddCategory ?? true,
     });
 
     res.status(201).json({
@@ -49,7 +57,6 @@ export const createRestaurant = async (req, res) => {
     });
   }
 };
-
 /**
  * @desc    Get All Restaurants
  * @route   GET /api/restaurants
@@ -57,15 +64,28 @@ export const createRestaurant = async (req, res) => {
  */
 export const getAllRestaurants = async (req, res) => {
   try {
-    const restaurants = await Restaurant.find().populate(
-      "user",
-      "name mobile email role"
-    );
+    const restaurants = await Restaurant.find()
+      .populate("user", "mobile role");
+
+    const formattedData = restaurants.map((r) => ({
+      id: r._id,
+      name: r.name,
+      image: r.image,
+      address: r.address,
+      status: r.status,
+      isOpen: r.isOpen,
+      canAddCategory: r.canAddCategory,
+      commissionPercentage: r.commissionPercentage,
+      totalProducts: r.totalProducts,
+      totalOrders: r.totalOrders,
+      activeOrders: r.activeOrders,
+      createdAt: r.createdAt,
+    }));
 
     res.status(200).json({
       success: true,
-      count: restaurants.length,
-      data: restaurants,
+      count: formattedData.length,
+      data: formattedData,
     });
   } catch (error) {
     res.status(500).json({
@@ -74,7 +94,6 @@ export const getAllRestaurants = async (req, res) => {
     });
   }
 };
-
 /**
  * @desc    Get Restaurant By ID
  * @route   GET /api/restaurants/:id
@@ -157,6 +176,62 @@ export const deleteRestaurant = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Restaurant deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const updateRestaurantStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const restaurant = await Restaurant.findById(req.params.id);
+
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
+    }
+
+    restaurant.status = status;
+    await restaurant.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Status updated successfully",
+      data: restaurant,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const toggleRestaurantOpen = async (req, res) => {
+  try {
+    const restaurant = await Restaurant.findById(req.params.id);
+
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
+    }
+
+    restaurant.isOpen = !restaurant.isOpen;
+    await restaurant.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Restaurant status toggled",
+      isOpen: restaurant.isOpen,
     });
   } catch (error) {
     res.status(500).json({

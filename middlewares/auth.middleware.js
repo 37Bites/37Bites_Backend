@@ -11,9 +11,7 @@ export const protect = async (req, res, next) => {
       req.headers.authorization.startsWith("Bearer")
     ) {
       token = req.headers.authorization.split(" ")[1];
-    }
-
-    if (!token && req.cookies.token) {
+    } else if (req.cookies.token) {
       token = req.cookies.token;
     }
 
@@ -28,9 +26,12 @@ export const protect = async (req, res, next) => {
 
     let account;
 
+    // 🔹 Admin account
     if (decoded.role === "admin") {
       account = await Admin.findById(decoded.userId).select("-password");
-    } else {
+    } 
+    // 🔹 All other roles from User collection
+    else {
       account = await User.findById(decoded.userId);
     }
 
@@ -41,7 +42,14 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    // ✅ Set clean user object WITH role
+    // 🔐 Extra Security: Prevent role tampering
+    if (account.role && account.role !== decoded.role) {
+      return res.status(401).json({
+        success: false,
+        message: "Role mismatch",
+      });
+    }
+
     req.user = {
       id: account._id,
       role: decoded.role,

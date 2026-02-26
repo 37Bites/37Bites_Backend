@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Delivery from "../models/Delivery.js"; 
 import { sendOtp, verifyOtp } from "../services/otp.service.js";
 
 /**
@@ -21,8 +22,8 @@ export const loginController = async (req, res, next) => {
     mobile = mobile.trim();
     role = role.trim();
 
-    // 🔒 Only allow user & restaurant roles
-    const allowedRoles = ["user", "restaurant"];
+    // 🔒 Allow user, restaurant & delivery
+    const allowedRoles = ["user", "restaurant", "delivery"];
 
     if (!allowedRoles.includes(role)) {
       return res.status(400).json({
@@ -33,7 +34,7 @@ export const loginController = async (req, res, next) => {
 
     const user = await User.findOne({ mobile, role });
 
-    // If user exists and already verified → direct login
+  
     if (user && user.isVerified) {
       const token = jwt.sign(
         { userId: user._id, role: user.role },
@@ -48,14 +49,23 @@ export const loginController = async (req, res, next) => {
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
+    
+      let isProfileComplete = true;
+
+      if (user.role === "delivery") {
+        const deliveryProfile = await Delivery.findOne({ user: user._id });
+        isProfileComplete = deliveryProfile ? true : false;
+      }
+
       return res.json({
         success: true,
         message: "Login successful",
         user,
+        isProfileComplete,
       });
     }
 
-    // Otherwise send OTP
+
     await sendOtp(mobile, role);
 
     return res.json({
@@ -63,16 +73,14 @@ export const loginController = async (req, res, next) => {
       message: "OTP sent successfully",
       requiresOtp: true,
     });
+
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * ============================
- * VERIFY OTP CONTROLLER
- * ============================
- */
+
+
 export const verifyOtpController = async (req, res, next) => {
   try {
     let { mobile, otp } = req.body;
@@ -87,7 +95,7 @@ export const verifyOtpController = async (req, res, next) => {
     mobile = mobile.trim();
     otp = otp.trim();
 
-    // 🔥 Verify OTP and get role from OTP service
+
     const role = await verifyOtp(mobile, otp);
 
     if (!role) {
@@ -97,7 +105,6 @@ export const verifyOtpController = async (req, res, next) => {
       });
     }
 
-    // 🔒 Double safety — block admin from OTP system
     if (role === "admin") {
       return res.status(403).json({
         success: false,
@@ -107,7 +114,6 @@ export const verifyOtpController = async (req, res, next) => {
 
     let user = await User.findOne({ mobile, role });
 
-    // Create new user if not exists
     if (!user) {
       user = await User.create({
         mobile,
@@ -119,6 +125,7 @@ export const verifyOtpController = async (req, res, next) => {
       await user.save();
     }
 
+   
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -132,11 +139,21 @@ export const verifyOtpController = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
+   
+    let isProfileComplete = true;
+
+    if (user.role === "delivery") {
+      const deliveryProfile = await Delivery.findOne({ user: user._id });
+      isProfileComplete = deliveryProfile ? true : false;
+    }
+
     return res.json({
       success: true,
       message: "Login successful",
       user,
+      isProfileComplete,
     });
+
   } catch (error) {
     next(error);
   }
