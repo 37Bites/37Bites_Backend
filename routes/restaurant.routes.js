@@ -31,7 +31,14 @@ router.get("/", protect, adminOnly, getAllRestaurants);
 router.get("/:id", protect, adminOnly, getRestaurantById);
 
 // Update restaurant
-router.put("/:id", protect, adminOnly, updateRestaurant);
+// Update restaurant (with image support)
+router.put(
+  "/:id",
+  protect,
+  adminOnly,
+  upload.single("image"), // 👈 ADD THIS
+  updateRestaurant
+);
 
 // Delete restaurant
 router.delete("/:id", protect, adminOnly, deleteRestaurant);
