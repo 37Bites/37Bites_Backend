@@ -1,6 +1,7 @@
 import express from "express";
 import { protect } from "../middlewares/auth.middleware.js";
 import { adminOnly } from "../middlewares/admin.middleware.js";
+import upload from "../middlewares/upload.middleware.js"; // ✅ ADD THIS
 
 import {
   createRestaurant,
@@ -14,8 +15,14 @@ import {
 
 const router = express.Router();
 
-// Create restaurant
-router.post("/", protect, adminOnly, createRestaurant);
+// Create restaurant (with image upload)
+router.post(
+  "/",
+  protect,
+  adminOnly,
+  upload.single("image"), // ✅ ADD THIS
+  createRestaurant
+);
 
 // Get all restaurants
 router.get("/", protect, adminOnly, getAllRestaurants);
@@ -28,7 +35,6 @@ router.put("/:id", protect, adminOnly, updateRestaurant);
 
 // Delete restaurant
 router.delete("/:id", protect, adminOnly, deleteRestaurant);
-
 
 // Update restaurant approval/status
 router.patch("/:id/status", protect, adminOnly, updateRestaurantStatus);

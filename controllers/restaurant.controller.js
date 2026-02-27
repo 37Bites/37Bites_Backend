@@ -1,5 +1,6 @@
 import Restaurant from "../models/restaurant.model.js";
 import User from "../models/User.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.utils.js";
 
 /**
  * @desc    Create Restaurant (Admin)
@@ -13,10 +14,11 @@ export const createRestaurant = async (req, res) => {
       name,
       description,
       address,
-      image,
       commissionPercentage,
       canAddCategory,
     } = req.body;
+    console.log("BODY:", req.body);
+console.log("USER ID:", req.body.userId);
 
     const user = await User.findById(userId);
 
@@ -36,14 +38,31 @@ export const createRestaurant = async (req, res) => {
       });
     }
 
+    // ✅ NEW IMAGE UPLOAD LOGIC
+    let imageData = {};
+
+    if (req.file) {
+      const result = await uploadToCloudinary(
+        req.file.buffer,
+        "swiggy-clone/restaurants/logos"
+      );
+
+      imageData = {
+        image: {
+          url: result.secure_url,
+          publicId: result.public_id,
+        },
+      };
+    }
+
     const restaurant = await Restaurant.create({
       user: userId,
       name,
       description,
       address,
-      image,
       commissionPercentage: commissionPercentage || 10,
       canAddCategory: canAddCategory ?? true,
+      ...imageData,
     });
 
     res.status(201).json({
@@ -70,7 +89,7 @@ export const getAllRestaurants = async (req, res) => {
     const formattedData = restaurants.map((r) => ({
       id: r._id,
       name: r.name,
-      image: r.image,
+      image: r.image?.url,
       address: r.address,
       status: r.status,
       isOpen: r.isOpen,
@@ -164,7 +183,7 @@ export const updateRestaurant = async (req, res) => {
  */
 export const deleteRestaurant = async (req, res) => {
   try {
-    const restaurant = await Restaurant.findByIdAndDelete(req.params.id);
+    const restaurant = await Restaurant.findById(req.params.id);
 
     if (!restaurant) {
       return res.status(404).json({
@@ -172,6 +191,13 @@ export const deleteRestaurant = async (req, res) => {
         message: "Restaurant not found",
       });
     }
+
+    // ✅ Delete image from Cloudinary
+    if (restaurant.image?.publicId) {
+      await deleteFromCloudinary(restaurant.image.publicId);
+    }
+
+    await restaurant.deleteOne();
 
     res.status(200).json({
       success: true,

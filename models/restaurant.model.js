@@ -12,10 +12,15 @@ const restaurantSchema = new mongoose.Schema(
     // Basic Info
     name: { type: String, required: true },
     description: { type: String },
-    image: { type: String },
+
+    image: {
+      url: { type: String },
+      publicId: { type: String },
+    },
+
     address: { type: String, required: true },
 
-    // Business Logic Fields (From UI)
+    // Business Logic Fields
     status: {
       type: String,
       enum: ["active", "awaiting_approval", "blocked"],
@@ -37,7 +42,7 @@ const restaurantSchema = new mongoose.Schema(
       default: 10,
     },
 
-    // Stats (for dashboard table)
+    // Stats
     totalProducts: {
       type: Number,
       default: 0,
