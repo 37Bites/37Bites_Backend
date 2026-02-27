@@ -127,3 +127,36 @@ export const deleteUser = async (req, res, next) => {
     next(error);
   }
 };
+
+// TOGGLE USER ACTIVE STATUS
+// PATCH /api/users/:id/toggle-status
+export const toggleUserStatus = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    user.isActive = !user.isActive;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `User ${
+        user.isActive ? "activated" : "deactivated"
+      } successfully`,
+      data: {
+        id: user._id,
+        mobile: user.mobile,
+        role: user.role,
+        isActive: user.isActive,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
