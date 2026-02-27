@@ -17,8 +17,8 @@ export const createRestaurant = async (req, res) => {
       commissionPercentage,
       canAddCategory,
     } = req.body;
-    console.log("BODY:", req.body);
-console.log("USER ID:", req.body.userId);
+//     console.log("BODY:", req.body);
+// console.log("USER ID:", req.body.userId);
 
     const user = await User.findById(userId);
 
