@@ -27,16 +27,20 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://37-bites-frontend.vercel.app",
   "https://37-bites-admim.vercel.app",
-
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow Postman & server-to-server requests
       if (!origin) return callback(null, true);
 
+      // Allow exact matches
       if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // ✅ Allow ALL Vercel preview deployments
+      if (origin.endsWith(".vercel.app")) {
         return callback(null, true);
       }
 
