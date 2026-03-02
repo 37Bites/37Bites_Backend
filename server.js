@@ -10,7 +10,7 @@ import userRoutes from "./routes/user.routes.js";
 import restaurantRoutes from "./routes/restaurant.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
-import adminDeliveryRoutes from "./routes/admin.delivery.routes.js";
+import adminDeliveryRoutes from "./routes/admin_delivery.routes.js";
 import errorHandler from "./middlewares/error.middleware.js";
 
 const app = express();

@@ -12,10 +12,27 @@ import {
 
 const router = express.Router();
 
-router.post("/", protect, adminOnly, createUser);
-router.get("/", protect, adminOnly, getAllUsers);
-router.get("/:id", protect, adminOnly, getUserById);
-router.put("/:id", protect, adminOnly, updateUser);
-router.delete("/:id", protect, adminOnly, deleteUser);
-router.patch("/:id/toggle-status", protect, adminOnly, toggleUserStatus);
+/* ==========================================
+   ADMIN USER ROUTES
+   Base: /api/v1/users
+========================================== */
+
+// Create User
+router.post("/create", protect, adminOnly, createUser);
+
+// Get All Users
+router.get("/all", protect, adminOnly, getAllUsers);
+
+// Get Single User
+router.get("/:userId", protect, adminOnly, getUserById);
+
+// Update User
+router.patch("/:userId", protect, adminOnly, updateUser);
+
+// Toggle Active Status
+router.patch("/:userId/status", protect, adminOnly, toggleUserStatus);
+
+// Delete User
+router.delete("/:userId", protect, adminOnly, deleteUser);
+
 export default router;

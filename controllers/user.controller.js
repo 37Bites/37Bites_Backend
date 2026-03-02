@@ -1,9 +1,25 @@
 import User from "../models/User.js";
 
-// CREATE USER
+/* ==========================================
+   CREATE USER
+========================================== */
 export const createUser = async (req, res, next) => {
   try {
-    const { mobile, role } = req.body;
+    const {
+      mobile,
+      role,
+      name,
+      gender,
+      dateOfBirth,
+      bio,
+      profilePhoto,
+      isVerified,
+      isActive,
+      
+      lastLoginAt,
+      addresses,
+      preferences,
+    } = req.body;
 
     if (!mobile || !role) {
       return res.status(400).json({
@@ -12,39 +28,47 @@ export const createUser = async (req, res, next) => {
       });
     }
 
-    const existingUser = await User.findOne({ mobile });
-
+    // Unique mobile + role check
+    const existingUser = await User.findOne({ mobile, role });
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: "User already exists",
+        message: "User already exists with this role",
       });
     }
 
     const user = await User.create({
       mobile,
       role,
-      isVerified: true,
+      name,
+      gender,
+      dateOfBirth,
+      bio,
+      profilePhoto,
+      isVerified,
+      isActive,
+      
+      lastLoginAt,
+      addresses,
+      preferences,
     });
 
     res.status(201).json({
       success: true,
       message: "User created successfully",
-      user,
+      data: user,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// GET ALL USERS
-// GET /api/users?sortBy=role
-// GET ALL USERS
-// GET /api/users
-export const getAllUsers = async (req, res) => {
+/* ==========================================
+   GET ALL USERS
+========================================== */
+export const getAllUsers = async (req, res, next) => {
   try {
-    // Fetch only users with role = "user"
-    const users = await User.find({ role: "user" });
+    const users = await User.find();
 
     res.status(200).json({
       success: true,
@@ -52,13 +76,13 @@ export const getAllUsers = async (req, res) => {
       data: users,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
-// GET SINGLE USER
+
+/* ==========================================
+   GET SINGLE USER
+========================================== */
 export const getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
@@ -70,23 +94,74 @@ export const getUserById = async (req, res, next) => {
       });
     }
 
-    res.json({
+    res.status(200).json({
       success: true,
-      user,
+      data: user,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// UPDATE USER
+/* ==========================================
+   UPDATE USER (ALL SCHEMA FIELDS SUPPORTED)
+========================================== */
 export const updateUser = async (req, res, next) => {
   try {
-    const { mobile, role } = req.body;
+    const {
+      name,
+      gender,
+      dateOfBirth,
+      bio,
+      profilePhoto,
+      isVerified,
+      isActive,
+      
+      lastLoginAt,
+      addresses,
+      totalOrders,
+      completedOrders,
+      cancelledOrders,
+      totalSpent,
+      totalEarnings,
+      lastOrderAt,
+      walletBalance,
+      loyaltyPoints,
+      cashbackBalance,
+      preferences,
+    } = req.body;
+
+    const updates = {
+      name,
+      gender,
+      dateOfBirth,
+      bio,
+      profilePhoto,
+      isVerified,
+      isActive,
+      
+      lastLoginAt,
+      addresses,
+      totalOrders,
+      completedOrders,
+      cancelledOrders,
+      totalSpent,
+      totalEarnings,
+      lastOrderAt,
+      walletBalance,
+      loyaltyPoints,
+      cashbackBalance,
+      preferences,
+    };
+
+    // Remove undefined fields
+    Object.keys(updates).forEach(
+      (key) => updates[key] === undefined && delete updates[key]
+    );
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { mobile, role },
+      updates,
       { new: true, runValidators: true }
     );
 
@@ -97,17 +172,19 @@ export const updateUser = async (req, res, next) => {
       });
     }
 
-    res.json({
+    res.status(200).json({
       success: true,
       message: "User updated successfully",
-      user,
+      data: user,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// DELETE USER
+/* ==========================================
+   DELETE USER
+========================================== */
 export const deleteUser = async (req, res, next) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
@@ -119,7 +196,7 @@ export const deleteUser = async (req, res, next) => {
       });
     }
 
-    res.json({
+    res.status(200).json({
       success: true,
       message: "User deleted successfully",
     });
@@ -128,8 +205,9 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
-// TOGGLE USER ACTIVE STATUS
-// PATCH /api/users/:id/toggle-status
+/* ==========================================
+   TOGGLE USER ACTIVE STATUS
+========================================== */
 export const toggleUserStatus = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
