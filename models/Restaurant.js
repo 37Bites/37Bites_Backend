@@ -24,10 +24,10 @@ const addressSchema = new mongoose.Schema(
   {
     // flatNo: String,
     // buildingName: String,
-    street: { type: String, required: true },
-    area: { type: String, required: true },
+    street: { type: String },
+    area: { type: String },
     landmark: String,
-    city: { type: String, required: true },
+    city: { type: String },
     
     state: { type: String, required: true },
     country: { type: String, default: "India" },
@@ -80,12 +80,15 @@ const restaurantSchema = new mongoose.Schema(
     /* ==================================
        OWNER INFORMATION
     ===================================*/
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      unique: true,
-    },
+ user: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "User",
+  default: null,
+},
+ownerMobile: {
+  type: String,
+  
+},
 
     /* ==================================
        BASIC INFO

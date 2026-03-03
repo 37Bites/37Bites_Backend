@@ -120,6 +120,11 @@ const userSchema = new mongoose.Schema(
       //   sms: { type: Boolean, default: true },
       // },
     },
+    restaurant: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Restaurant",
+  default: null,
+},
 
    
   },

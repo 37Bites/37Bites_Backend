@@ -5,10 +5,9 @@ import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.ut
 
 import slugify from "slugify";
 
+
 export const createRestaurant = async (req, res) => {
   try {
-    const userId = req.user._id; // ✅ Auto from token
-
     const {
       name,
       description,
@@ -32,48 +31,95 @@ export const createRestaurant = async (req, res) => {
       seoTitle,
       seoDescription,
       subscriptionPlan,
+
+      // 🔥 OWNER FIELDS
+      ownerMobile,
+      ownerName,
     } = req.body;
 
     /* ================================
-       REQUIRED FIELD VALIDATION
+       REQUIRED VALIDATION
     =================================*/
-    if (!name) {
+    if (!name?.trim()) {
       return res.status(400).json({
         success: false,
         message: "Restaurant name is required",
       });
     }
 
-    if (!address || !address.location || !address.location.coordinates) {
+    if (!ownerMobile?.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Address with valid coordinates is required",
+        message: "Owner mobile number is required",
+      });
+    }
+
+    if (
+      !address ||
+      !address.fullAddress ||
+      !address.state ||
+      !address.pincode ||
+      !address.location ||
+      !Array.isArray(address.location.coordinates) ||
+      address.location.coordinates.length !== 2
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid address with coordinates is required",
       });
     }
 
     /* ================================
-       CHECK IF USER ALREADY HAS RESTAURANT
+       CREATE OR UPDATE OWNER USER
     =================================*/
-    const existingRestaurant = await Restaurant.findOne({ user: userId });
+    let owner = await User.findOne({ mobile: ownerMobile.trim() });
+
+    if (!owner) {
+      owner = await User.create({
+        name: ownerName?.trim() || "",
+        mobile: ownerMobile.trim(),
+        role: "restaurant",
+        isVerified: true, // admin created
+      });
+    } else {
+      owner.role = "restaurant";
+      owner.isVerified = true;
+      if (ownerName) owner.name = ownerName.trim();
+      await owner.save();
+    }
+
+    /* ================================
+       CHECK IF OWNER ALREADY HAS RESTAURANT
+    =================================*/
+    const existingRestaurant = await Restaurant.findOne({
+      user: owner._id,
+      isDeleted: false,
+    });
 
     if (existingRestaurant) {
       return res.status(400).json({
         success: false,
-        message: "User already owns a restaurant",
+        message: "This owner already has a restaurant",
       });
     }
 
     /* ================================
-       GENERATE SLUG
+       GENERATE UNIQUE SLUG
     =================================*/
-    const slug = slugify(name, { lower: true, strict: true });
+    let slug = slugify(name, { lower: true, strict: true });
+
+    const slugExists = await Restaurant.findOne({ slug });
+    if (slugExists) {
+      slug = `${slug}-${Date.now()}`;
+    }
 
     /* ================================
        CREATE RESTAURANT
     =================================*/
     const restaurant = await Restaurant.create({
-      user: userId,
-      name,
+      user: owner._id,
+
+      name: name.trim(),
       slug,
       description,
       restaurantType,
@@ -82,7 +128,11 @@ export const createRestaurant = async (req, res) => {
       averageCostForTwo,
 
       address: {
-        ...address,
+        fullAddress: address.fullAddress,
+        landmark: address.landmark,
+        state: address.state,
+        country: address.country || "India",
+        pincode: address.pincode,
         location: {
           type: "Point",
           coordinates: address.location.coordinates,
@@ -121,23 +171,31 @@ export const createRestaurant = async (req, res) => {
       seoDescription,
       subscriptionPlan,
 
-      // 🔒 System Controlled Fields
       status: "pending",
       isOpen: false,
       isBusy: false,
     });
 
-    res.status(201).json({
+    /* ================================
+       LINK RESTAURANT TO USER
+    =================================*/
+    owner.restaurant = restaurant._id;
+    await owner.save();
+
+    return res.status(201).json({
       success: true,
-      message: "Restaurant created successfully",
+      message: "Restaurant created successfully and owner assigned",
       data: restaurant,
     });
+
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  console.error("Create Restaurant Error:", error);
+
+  return res.status(500).json({
+    success: false,
+    message: error.message,
+  });
+}
 };
 /**
  * @desc    Get All Restaurants

@@ -28,7 +28,7 @@ const router = express.Router();
 ========================================================= */
 
 /* =============================
-   CREATE RESTAURANT
+   CREATE RESTAURANT+
 ============================= */
 router.post(
   "/create",
