@@ -87,7 +87,7 @@ const restaurantSchema = new mongoose.Schema(
 },
 ownerMobile: {
   type: String,
-  
+  required: true,
 },
 
     /* ==================================

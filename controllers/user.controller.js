@@ -10,21 +10,19 @@ export const createUser = async (req, res, next) => {
       role,
       name,
       gender,
-      dateOfBirth,
-      bio,
       profilePhoto,
       isVerified,
       isActive,
-      
       lastLoginAt,
       addresses,
       preferences,
+      ownedRestaurants,
     } = req.body;
 
-    if (!mobile || !role) {
+    if (!mobile || !role || !name) {
       return res.status(400).json({
         success: false,
-        message: "Mobile and role are required",
+        message: "Mobile, role and name are required",
       });
     }
 
@@ -42,15 +40,13 @@ export const createUser = async (req, res, next) => {
       role,
       name,
       gender,
-      dateOfBirth,
-      bio,
       profilePhoto,
       isVerified,
       isActive,
-      
       lastLoginAt,
       addresses,
       preferences,
+      ownedRestaurants,
     });
 
     res.status(201).json({
@@ -64,11 +60,14 @@ export const createUser = async (req, res, next) => {
 };
 
 /* ==========================================
-   GET ALL USERS
+   GET ALL USERS (Non Deleted Only)
 ========================================== */
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find({ role: "user" });
+    const users = await User.find({
+      role: "user",
+      
+    });
 
     res.status(200).json({
       success: true,
@@ -85,7 +84,10 @@ export const getAllUsers = async (req, res, next) => {
 ========================================== */
 export const getUserById = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findOne({
+      _id: req.params.userId,
+      
+    }).populate("ownedRestaurants");
 
     if (!user) {
       return res.status(404).json({
@@ -104,54 +106,46 @@ export const getUserById = async (req, res, next) => {
 };
 
 /* ==========================================
-   UPDATE USER (ALL SCHEMA FIELDS SUPPORTED)
+   UPDATE USER
 ========================================== */
 export const updateUser = async (req, res, next) => {
   try {
     const {
       name,
       gender,
-      dateOfBirth,
-      bio,
       profilePhoto,
       isVerified,
       isActive,
-      
       lastLoginAt,
       addresses,
       totalOrders,
       completedOrders,
       cancelledOrders,
       totalSpent,
-      totalEarnings,
       lastOrderAt,
       walletBalance,
-      loyaltyPoints,
       cashbackBalance,
       preferences,
+      ownedRestaurants,
     } = req.body;
 
     const updates = {
       name,
       gender,
-      dateOfBirth,
-      bio,
       profilePhoto,
       isVerified,
       isActive,
-      
       lastLoginAt,
       addresses,
       totalOrders,
       completedOrders,
       cancelledOrders,
       totalSpent,
-      totalEarnings,
       lastOrderAt,
       walletBalance,
-      loyaltyPoints,
       cashbackBalance,
       preferences,
+      ownedRestaurants,
     };
 
     // Remove undefined fields
@@ -159,8 +153,8 @@ export const updateUser = async (req, res, next) => {
       (key) => updates[key] === undefined && delete updates[key]
     );
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.id, isDeleted: false },
       updates,
       { new: true, runValidators: true }
     );
@@ -183,11 +177,15 @@ export const updateUser = async (req, res, next) => {
 };
 
 /* ==========================================
-   DELETE USER
+   SOFT DELETE USER
 ========================================== */
 export const deleteUser = async (req, res, next) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.id, isDeleted: false },
+      { isDeleted: true },
+      { new: true }
+    );
 
     if (!user) {
       return res.status(404).json({
@@ -198,7 +196,7 @@ export const deleteUser = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: "User deleted successfully",
+      message: "User deleted successfully (soft delete)",
     });
   } catch (error) {
     next(error);
@@ -210,7 +208,10 @@ export const deleteUser = async (req, res, next) => {
 ========================================== */
 export const toggleUserStatus = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findOne({
+      _id: req.params.id,
+      isDeleted: false,
+    });
 
     if (!user) {
       return res.status(404).json({
