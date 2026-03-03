@@ -27,7 +27,7 @@ const deliverySchema = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
-    },
+    },// vehicle number, is available, current location, ratings, total deliveries, etc can be added later as needed
   },
   { timestamps: true }
 );

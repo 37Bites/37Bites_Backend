@@ -3,11 +3,43 @@ import User from "../models/User.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.utils.js";
 
 
+
 import slugify from "slugify";
 
-
+/* =========================================================
+   CREATE RESTAURANT (ADMIN)
+========================================================= */
 export const createRestaurant = async (req, res) => {
   try {
+    /* =========================================================
+       🔥 STEP 1: PARSE JSON FIELDS (VERY IMPORTANT)
+    ========================================================= */
+    const jsonFields = [
+      "address",
+      "timings",
+      "paymentMethods",
+      "socialLinks",
+      "cuisines",
+      "categories",
+      "offers",
+    ];
+
+    jsonFields.forEach((field) => {
+      if (req.body[field] && typeof req.body[field] === "string") {
+        try {
+          req.body[field] = JSON.parse(req.body[field]);
+        } catch (err) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid JSON format in ${field}`,
+          });
+        }
+      }
+    });
+
+    /* =========================================================
+       STEP 2: DESTRUCTURE
+    ========================================================= */
     const {
       name,
       description,
@@ -31,15 +63,14 @@ export const createRestaurant = async (req, res) => {
       seoTitle,
       seoDescription,
       subscriptionPlan,
-
-      // 🔥 OWNER FIELDS
       ownerMobile,
       ownerName,
     } = req.body;
 
-    /* ================================
-       REQUIRED VALIDATION
-    =================================*/
+    /* =========================================================
+       STEP 3: BASIC VALIDATION
+    ========================================================= */
+
     if (!name?.trim()) {
       return res.status(400).json({
         success: false,
@@ -69,9 +100,19 @@ export const createRestaurant = async (req, res) => {
       });
     }
 
-    /* ================================
-       CREATE OR UPDATE OWNER USER
-    =================================*/
+    // Ensure coordinates are numbers
+    const [longitude, latitude] = address.location.coordinates;
+
+    if (isNaN(longitude) || isNaN(latitude)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid latitude or longitude",
+      });
+    }
+
+    /* =========================================================
+       STEP 4: CREATE OR UPDATE OWNER USER
+    ========================================================= */
     let owner = await User.findOne({ mobile: ownerMobile.trim() });
 
     if (!owner) {
@@ -79,7 +120,7 @@ export const createRestaurant = async (req, res) => {
         name: ownerName?.trim() || "",
         mobile: ownerMobile.trim(),
         role: "restaurant",
-        isVerified: true, // admin created
+        isVerified: true,
       });
     } else {
       owner.role = "restaurant";
@@ -88,9 +129,9 @@ export const createRestaurant = async (req, res) => {
       await owner.save();
     }
 
-    /* ================================
-       CHECK IF OWNER ALREADY HAS RESTAURANT
-    =================================*/
+    /* =========================================================
+       STEP 5: CHECK IF OWNER ALREADY HAS RESTAURANT
+    ========================================================= */
     const existingRestaurant = await Restaurant.findOne({
       user: owner._id,
       isDeleted: false,
@@ -103,9 +144,9 @@ export const createRestaurant = async (req, res) => {
       });
     }
 
-    /* ================================
-       GENERATE UNIQUE SLUG
-    =================================*/
+    /* =========================================================
+       STEP 6: GENERATE UNIQUE SLUG
+    ========================================================= */
     let slug = slugify(name, { lower: true, strict: true });
 
     const slugExists = await Restaurant.findOne({ slug });
@@ -113,9 +154,9 @@ export const createRestaurant = async (req, res) => {
       slug = `${slug}-${Date.now()}`;
     }
 
-    /* ================================
-       CREATE RESTAURANT
-    =================================*/
+    /* =========================================================
+       STEP 7: CREATE RESTAURANT
+    ========================================================= */
     const restaurant = await Restaurant.create({
       user: owner._id,
 
@@ -135,7 +176,7 @@ export const createRestaurant = async (req, res) => {
         pincode: address.pincode,
         location: {
           type: "Point",
-          coordinates: address.location.coordinates,
+          coordinates: [longitude, latitude], // MUST BE [lng, lat]
         },
       },
 
@@ -146,7 +187,6 @@ export const createRestaurant = async (req, res) => {
       deliveryRadiusInKm,
       minimumOrderAmount,
       packagingCharge,
-
       paymentMethods,
       canAddCategory,
       categories,
@@ -176,12 +216,15 @@ export const createRestaurant = async (req, res) => {
       isBusy: false,
     });
 
-    /* ================================
-       LINK RESTAURANT TO USER
-    =================================*/
+    /* =========================================================
+       STEP 8: LINK RESTAURANT TO OWNER
+    ========================================================= */
     owner.restaurant = restaurant._id;
     await owner.save();
 
+    /* =========================================================
+       SUCCESS RESPONSE
+    ========================================================= */
     return res.status(201).json({
       success: true,
       message: "Restaurant created successfully and owner assigned",
@@ -189,13 +232,13 @@ export const createRestaurant = async (req, res) => {
     });
 
   } catch (error) {
-  console.error("Create Restaurant Error:", error);
+    console.error("Create Restaurant Error:", error);
 
-  return res.status(500).json({
-    success: false,
-    message: error.message,
-  });
-}
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 /**
  * @desc    Get All Restaurants
