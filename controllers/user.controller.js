@@ -68,7 +68,7 @@ export const createUser = async (req, res, next) => {
 ========================================== */
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find();
+    const users = await User.find({ role: "user" });
 
     res.status(200).json({
       success: true,
