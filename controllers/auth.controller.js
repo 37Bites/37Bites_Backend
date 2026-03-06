@@ -8,75 +8,75 @@ import { sendOtp, verifyOtp } from "../services/otp.service.js";
  * LOGIN CONTROLLER
  * ============================
  */
-export const loginController = async (req, res, next) => {
-  try {
-    let { mobile, role } = req.body;
+  export const loginController = async (req, res, next) => {
+    try {
+      let { mobile, role } = req.body;
 
-    if (!mobile || !role) {
-      return res.status(400).json({
-        success: false,
-        message: "Mobile and role are required",
-      });
-    }
-
-    mobile = mobile.trim();
-    role = role.trim();
-
-    // 🔒 Allow user, restaurant & delivery
-    const allowedRoles = ["user", "restaurant", "delivery"];
-
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid role selected",
-      });
-    }
-
-    const user = await User.findOne({ mobile, role });
-
-  
-    if (user && user.isVerified) {
-      const token = jwt.sign(
-        { userId: user._id, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-
-      res.cookie("token", token, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-});
-    
-      let isProfileComplete = true;
-
-      if (user.role === "delivery") {
-        const deliveryProfile = await Delivery.findOne({ user: user._id });
-        isProfileComplete = deliveryProfile ? true : false;
+      if (!mobile || !role) {
+        return res.status(400).json({
+          success: false,
+          message: "Mobile and role are required",
+        });
       }
+
+      mobile = mobile.trim();
+      role = role.trim();
+
+      // 🔒 Allow user, restaurant & delivery
+      const allowedRoles = ["user", "restaurant", "delivery"];
+
+      if (!allowedRoles.includes(role)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid role selected",
+        });
+      }
+
+      const user = await User.findOne({ mobile, role });
+
+    
+      if (user && user.isVerified) {
+        const token = jwt.sign(
+          { userId: user._id, role: user.role },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+
+        res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+      
+        let isProfileComplete = true;
+
+        if (user.role === "delivery") {
+          const deliveryProfile = await Delivery.findOne({ user: user._id });
+          isProfileComplete = deliveryProfile ? true : false;
+        }
+
+        return res.json({
+          success: true,
+          message: "Login successful",
+          user,
+          isProfileComplete,
+        });
+      }
+
+
+      await sendOtp(mobile, role);
 
       return res.json({
         success: true,
-        message: "Login successful",
-        user,
-        isProfileComplete,
+        message: "OTP sent successfully",
+        requiresOtp: true,
       });
+
+    } catch (error) {
+      next(error);
     }
-
-
-    await sendOtp(mobile, role);
-
-    return res.json({
-      success: true,
-      message: "OTP sent successfully",
-      requiresOtp: true,
-    });
-
-  } catch (error) {
-    next(error);
-  }
-};
+  };
 
 
 
