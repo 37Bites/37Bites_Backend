@@ -154,7 +154,7 @@ export const updateUser = async (req, res, next) => {
     );
 
     const user = await User.findOneAndUpdate(
-      { _id: req.params.id, isDeleted: false },
+      { _id: req.params.userId, isDeleted: false },
       updates,
       { new: true, runValidators: true }
     );
@@ -182,7 +182,7 @@ export const updateUser = async (req, res, next) => {
 export const deleteUser = async (req, res, next) => {
   try {
     const user = await User.findOneAndUpdate(
-      { _id: req.params.id, isDeleted: false },
+      { _id: req.params.userId, isDeleted: false },
       { isDeleted: true },
       { new: true }
     );
@@ -209,7 +209,7 @@ export const deleteUser = async (req, res, next) => {
 export const toggleUserStatus = async (req, res, next) => {
   try {
     const user = await User.findOne({
-      _id: req.params.id,
+      _id: req.params.userId,
       isDeleted: false,
     });
 
