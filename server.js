@@ -25,6 +25,7 @@ connectDB();
 ================================= */
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://37-bites-frontend.vercel.app",
   "https://37-bites-admim.vercel.app",
 ];

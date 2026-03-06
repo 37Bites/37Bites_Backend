@@ -210,7 +210,7 @@ export const toggleUserStatus = async (req, res, next) => {
   try {
     const user = await User.findOne({
       _id: req.params.userId,
-      isDeleted: false,
+      // isDeleted: false,
     });
 
     if (!user) {
