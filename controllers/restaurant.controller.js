@@ -153,12 +153,67 @@ export const createRestaurant = async (req, res) => {
     if (slugExists) {
       slug = `${slug}-${Date.now()}`;
     }
+  /* =========================================================
+   STEP 7A: UPLOAD IMAGES TO CLOUDINARY
+========================================================= */
 
+let profileImage = undefined;
+let coverImage = undefined;
+let galleryImages = [];
+
+/* ================================
+   Upload Profile Image
+================================ */
+if (req.files?.profileImage?.[0]) {
+  const result = await uploadToCloudinary(
+    req.files.profileImage[0].buffer,
+    "restaurants/profile"
+  );
+
+  profileImage = {
+    url: result.secure_url,
+    publicId: result.public_id,
+  };
+}
+
+/* ================================
+   Upload Cover Image
+================================ */
+if (req.files?.coverImage?.[0]) {
+  const result = await uploadToCloudinary(
+    req.files.coverImage[0].buffer,
+    "restaurants/cover"
+  );
+
+  coverImage = {
+    url: result.secure_url,
+    publicId: result.public_id,
+  };
+}
+
+/* ================================
+   Upload Gallery Images
+================================ */
+if (req.files?.galleryImages?.length > 0) {
+  for (const file of req.files.galleryImages) {
+    const result = await uploadToCloudinary(
+      file.buffer,
+      "restaurants/gallery"
+    );
+
+    galleryImages.push({
+      url: result.secure_url,
+      publicId: result.public_id,
+    });
+  }
+}
     /* =========================================================
        STEP 7: CREATE RESTAURANT
     ========================================================= */
     const restaurant = await Restaurant.create({
       user: owner._id,
+      ownerMobile: ownerMobile.trim(),
+      ownerName: ownerName?.trim(),
 
       name: name.trim(),
       slug,
@@ -192,19 +247,9 @@ export const createRestaurant = async (req, res) => {
       categories,
       offers,
 
-      profileImage: req.files?.profileImage?.[0]
-        ? {
-            url: req.files.profileImage[0].path,
-            publicId: req.files.profileImage[0].filename,
-          }
-        : undefined,
-
-      coverImage: req.files?.coverImage?.[0]
-        ? {
-            url: req.files.coverImage[0].path,
-            publicId: req.files.coverImage[0].filename,
-          }
-        : undefined,
+       profileImage,
+coverImage,
+galleryImages,
 
       socialLinks,
       seoTitle,
@@ -356,15 +401,30 @@ export const toggleRestaurantOpen = async (req, res) => {
   try {
     const restaurant = await Restaurant.findById(req.params.restaurantId);
 
-    restaurant.isOpen = !restaurant.isOpen;
-    await restaurant.save();
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
+    }
 
-    res.status(200).json({ success: true, data: restaurant });
+    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+      req.params.restaurantId,
+      { isOpen: !restaurant.isOpen },
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: updatedRestaurant,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
-
 /* =========================================================
    TOGGLE BUSY
 ========================================================= */
@@ -372,12 +432,21 @@ export const toggleRestaurantBusy = async (req, res) => {
   try {
     const restaurant = await Restaurant.findById(req.params.restaurantId);
 
-    restaurant.isBusy = !restaurant.isBusy;
-    await restaurant.save();
+    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+      req.params.restaurantId,
+      { isBusy: !restaurant.isBusy },
+      { new: true }
+    );
 
-    res.status(200).json({ success: true, data: restaurant });
+    res.status(200).json({
+      success: true,
+      data: updatedRestaurant,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
