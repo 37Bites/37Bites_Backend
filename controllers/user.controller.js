@@ -27,7 +27,12 @@ export const createUser = async (req, res, next) => {
     }
 
     // Unique mobile + role check
-    const existingUser = await User.findOne({ mobile, role });
+    const existingUser = await User.findOne({
+      mobile,
+      role,
+      isDeleted: false,
+    });
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -66,8 +71,8 @@ export const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find({
       role: "user",
-      
-    });
+      isDeleted: false,
+    }).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -86,7 +91,7 @@ export const getUserById = async (req, res, next) => {
   try {
     const user = await User.findOne({
       _id: req.params.userId,
-      
+      isDeleted: false,
     }).populate("ownedRestaurants");
 
     if (!user) {
@@ -111,6 +116,8 @@ export const getUserById = async (req, res, next) => {
 export const updateUser = async (req, res, next) => {
   try {
     const {
+      mobile,
+      role,
       name,
       gender,
       profilePhoto,
@@ -129,7 +136,40 @@ export const updateUser = async (req, res, next) => {
       ownedRestaurants,
     } = req.body;
 
+    // check user exists first
+    const existingUser = await User.findOne({
+      _id: req.params.userId,
+      isDeleted: false,
+    });
+
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // duplicate check only when mobile or role is changing
+    const nextMobile = mobile !== undefined ? mobile : existingUser.mobile;
+    const nextRole = role !== undefined ? role : existingUser.role;
+
+    const duplicateUser = await User.findOne({
+      _id: { $ne: req.params.userId },
+      mobile: nextMobile,
+      role: nextRole,
+      isDeleted: false,
+    });
+
+    if (duplicateUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Another user already exists with this mobile and role",
+      });
+    }
+
     const updates = {
+      mobile,
+      role,
       name,
       gender,
       profilePhoto,
@@ -149,22 +189,17 @@ export const updateUser = async (req, res, next) => {
     };
 
     // Remove undefined fields
-    Object.keys(updates).forEach(
-      (key) => updates[key] === undefined && delete updates[key]
-    );
+    Object.keys(updates).forEach((key) => {
+      if (updates[key] === undefined) {
+        delete updates[key];
+      }
+    });
 
     const user = await User.findOneAndUpdate(
       { _id: req.params.userId, isDeleted: false },
       updates,
       { new: true, runValidators: true }
     );
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
 
     res.status(200).json({
       success: true,
@@ -210,7 +245,7 @@ export const toggleUserStatus = async (req, res, next) => {
   try {
     const user = await User.findOne({
       _id: req.params.userId,
-      // isDeleted: false,
+      isDeleted: false,
     });
 
     if (!user) {
