@@ -5,7 +5,7 @@ import { sendOtp, verifyOtp } from "../services/otp.service.js";
 
 /**
  * ============================
- * LOGIN CONTROLLER
+ * LOGIN CONTROLLER ;;
  * ============================
  */
 
