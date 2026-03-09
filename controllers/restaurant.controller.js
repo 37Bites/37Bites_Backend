@@ -70,46 +70,103 @@ export const createRestaurant = async (req, res) => {
     /* =========================================================
        STEP 3: BASIC VALIDATION
     ========================================================= */
+/* =========================================================
+   STEP 3: BASIC VALIDATION (BASED ON SCHEMA)
+========================================================= */
 
-    if (!name?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Restaurant name is required",
-      });
-    }
+if (!name || !name.trim()) {
+  return res.status(400).json({
+    success: false,
+    message: "Restaurant name is required",
+  });
+}
 
-    if (!ownerMobile?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Owner mobile number is required",
-      });
-    }
+if (!ownerMobile || !ownerMobile.trim()) {
+  return res.status(400).json({
+    success: false,
+    message: "Owner mobile number is required",
+  });
+}
 
-    if (
-      !address ||
-      !address.fullAddress ||
-      !address.state ||
-      !address.pincode ||
-      !address.location ||
-      !Array.isArray(address.location.coordinates) ||
-      address.location.coordinates.length !== 2
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid address with coordinates is required",
-      });
-    }
+/* Mobile validation (same as schema) */
+if (!/^[6-9]\d{9}$/.test(ownerMobile.trim())) {
+  return res.status(400).json({
+    success: false,
+    message: "Invalid mobile number",
+  });
+}
 
-    // Ensure coordinates are numbers
-    const [longitude, latitude] = address.location.coordinates;
+/* Address validation */
+if (!address) {
+  return res.status(400).json({
+    success: false,
+    message: "Address is required",
+  });
+}
 
-    if (isNaN(longitude) || isNaN(latitude)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid latitude or longitude",
-      });
-    }
+if (!address.street) {
+  return res.status(400).json({
+    success: false,
+    message: "Street is required",
+  });
+}
 
+if (!address.area) {
+  return res.status(400).json({
+    success: false,
+    message: "Area is required",
+  });
+}
+
+if (!address.city) {
+  return res.status(400).json({
+    success: false,
+    message: "City is required",
+  });
+}
+
+if (!address.state) {
+  return res.status(400).json({
+    success: false,
+    message: "State is required",
+  });
+}
+
+if (!address.pincode) {
+  return res.status(400).json({
+    success: false,
+    message: "Pincode is required",
+  });
+}
+
+/* Pincode validation */
+if (!/^\d{6}$/.test(address.pincode)) {
+  return res.status(400).json({
+    success: false,
+    message: "Invalid pincode",
+  });
+}
+
+/* Coordinates validation */
+if (
+  !address.location ||
+  !Array.isArray(address.location.coordinates) ||
+  address.location.coordinates.length !== 2
+) {
+  return res.status(400).json({
+    success: false,
+    message: "Valid coordinates are required",
+  });
+}
+
+const [longitude, latitude] = address.location.coordinates;
+
+if (isNaN(longitude) || isNaN(latitude)) {
+  return res.status(400).json({
+    success: false,
+    message: "Invalid longitude or latitude",
+  });
+}
     /* =========================================================
        STEP 4: CREATE OR UPDATE OWNER USER
     ========================================================= */
@@ -248,8 +305,8 @@ if (req.files?.galleryImages?.length > 0) {
       offers,
 
        profileImage,
-coverImage,
-galleryImages,
+      coverImage,
+      galleryImages,
 
       socialLinks,
       seoTitle,
