@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import Admin from "../models/Admin.js";
 
 /**
- * CREATE ADMIN (Use once or protect later)
+ * CREATE ADMIN
  */
 export const createAdmin = async (req, res, next) => {
   try {
@@ -33,13 +33,14 @@ export const createAdmin = async (req, res, next) => {
       password: hashedPassword,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Admin created successfully",
-      admin: {
-        id: admin._id,
-        email: admin.email,
+      user: {
+        _id: admin._id,
         name: admin.name,
+        email: admin.email,
+        role: "administrator",
       },
     });
   } catch (error) {
@@ -53,6 +54,13 @@ export const createAdmin = async (req, res, next) => {
 export const adminLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
 
     const admin = await Admin.findOne({ email });
 
@@ -72,24 +80,32 @@ export const adminLogin = async (req, res, next) => {
       });
     }
 
-    // ✅ Standardized token payload
     const token = jwt.sign(
-      { userId: admin._id, role: "admin" },
+      {
+        userId: admin._id,
+        role: "admin",
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // ✅ Standardized cookie name
- res.cookie("token", token, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-});
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
-    res.json({
+    return res.status(200).json({
       success: true,
       message: "Admin login successful",
+      user: {
+        _id: admin._id,
+        name: admin.name,
+        email: admin.email,
+        role: "administrator",
+      },
+      accessToken: token,
     });
   } catch (error) {
     next(error);
