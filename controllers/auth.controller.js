@@ -29,13 +29,25 @@ export const loginController = async (req, res, next) => {
     role = role.trim();
 
     const allowedRoles = ["user", "restaurant", "delivery"];
-
     if (!allowedRoles.includes(role)) {
       return res.status(400).json({
         success: false,
         message: "Invalid role selected",
       });
     }
+
+    // 🔹 Check if user exists and is active
+    const user = await User.findOne({ mobile, role });
+
+    if (user && !user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are blocked by 37 Bites team. Please reach out to customer care for further login assistance.",
+      });
+    }
+
+    // 🔹 Handle test numbers
     if (TEST_NUMBERS.includes(mobile)) {
       console.log(`Test OTP for ${mobile}: ${TEST_OTP}`);
 
@@ -45,7 +57,8 @@ export const loginController = async (req, res, next) => {
         requiresOtp: true,
       });
     }
-    // 🔹 Always send OTP (no auto login)
+
+    // 🔹 Always send OTP (if user is active or not registered yet)
     await sendOtp(mobile, role);
 
     return res.json({
@@ -53,12 +66,10 @@ export const loginController = async (req, res, next) => {
       message: "OTP sent successfully",
       requiresOtp: true,
     });
-
   } catch (error) {
     next(error);
   }
 };
-
 
 
 

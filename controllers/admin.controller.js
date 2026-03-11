@@ -1,6 +1,9 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Admin from "../models/Admin.js";
+import cloudinary from "../config/cloudinary.js";
+import streamifier from "streamifier";
+import { calculateProfileCompletion } from "../utils/profileCompletion.js";
 
 /**
  * CREATE ADMIN
@@ -126,6 +129,119 @@ export const adminLogout = async (req, res, next) => {
       success: true,
       message: "Admin logged out successfully",
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+// Admin Profile 
+
+
+export const uploadAdminProfileImage = async (req, res, next) => {
+  try {
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Image required",
+      });
+    }
+
+    const streamUpload = (buffer) =>
+      new Promise((resolve, reject) => {
+
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "admins" },
+          (error, result) => {
+            if (result) resolve(result);
+            else reject(error);
+          }
+        );
+
+        streamifier.createReadStream(buffer).pipe(stream);
+      });
+
+    const result = await streamUpload(req.file.buffer);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        url: result.secure_url,
+        public_id: result.public_id,
+      },
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// profile tracker 
+
+
+export const updateAdminProfile = async (req, res, next) => {
+  try {
+
+    const adminId = req.user.id;
+
+    const {
+      name,
+      mobile,
+      address,
+      profileImage
+    } = req.body;
+
+    const admin = await Admin.findById(adminId);
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    if (name) admin.name = name;
+    if (mobile) admin.mobile = mobile;
+
+    if (address) {
+      admin.address = {
+        ...admin.address,
+        ...address,
+      };
+    }
+
+    if (profileImage) {
+      admin.profileImage = profileImage;
+    }
+
+    admin.profileCompletion = calculateProfileCompletion(admin);
+
+    await admin.save();
+
+    res.status(200).json({
+      success: true,
+      data: admin,
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// get admin
+export const getAdminProfile = async (req, res, next) => {
+  try {
+
+    const admin = await Admin.findById(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      data: admin,
+    });
+
   } catch (error) {
     next(error);
   }
