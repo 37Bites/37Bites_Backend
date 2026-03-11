@@ -50,23 +50,23 @@ export const adminCreateDelivery = async (req, res) => {
 /* ======================================
    ADMIN - GET ALL DELIVERY MEN
 ====================================== */
-export const adminGetAllDeliveries = async (req, res) => {
+export const getAllDeliveries = async (req, res, next) => {
   try {
-    const deliveries = await Delivery.find()
-      .populate("user", "name mobile email role");
+    const users = await User.find({
+      role: "delivery",
+      isDeleted: false,
+    }).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      count: deliveries.length,
-      deliveries,
+      count: users.length,
+      data: users,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
+
 
 /* ======================================
    ADMIN - GET SINGLE DELIVERY

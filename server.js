@@ -12,6 +12,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
 import adminDeliveryRoutes from "./routes/admin_delivery.routes.js";
 import errorHandler from "./middlewares/error.middleware.js";
+import adminRestOwnerRoutes from "./routes/admin_restowner.routes.js";
 
 const app = express();
 
@@ -78,6 +79,7 @@ app.use("/api/v1/admin", adminRoutes);
 
 app.use("/api/v1/delivery", deliveryRoutes);
 app.use("/api/v1/admin/delivery", adminDeliveryRoutes);
+app.use("/api/v1/admin/restowners", adminRestOwnerRoutes);
 /* ===============================
    ERROR HANDLER (ALWAYS LAST)
 ================================= */
