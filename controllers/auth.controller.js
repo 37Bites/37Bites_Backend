@@ -239,3 +239,27 @@ export const verifyOtpController = async (req, res, next) => {
     next(error);
   }
 };
+
+
+/**
+ * ============================
+ * LOGOUT CONTROLLER
+ * ============================
+ */
+
+export const logoutController = async (req, res, next) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
