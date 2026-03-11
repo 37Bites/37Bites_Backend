@@ -1,167 +1,41 @@
+// routes/restaurantRoutes.js
 import express from "express";
-import { protect } from "../middlewares/auth.middleware.js";
-import { adminOnly } from "../middlewares/admin.middleware.js";
-import upload from "../middlewares/upload.middleware.js";
-
 import {
-  createRestaurant,
-  getAllRestaurants,
-  getRestaurantById,
-  updateRestaurant,
-  deleteRestaurant,
-  updateRestaurantStatus,
-  toggleRestaurantOpen,
-  toggleRestaurantBusy,
-  addCategory,
-  updateCategory,
-  deleteCategory,
-  addOffer,
-  updateOffer,
-  deleteOffer,
-  updateSubscription,
+  getProfile,
+  updateProfile,
+    getProfileCompletion,
+//   getTracker
+
 } from "../controllers/restaurant.controller.js";
+import { protect } from "../middlewares/auth.middleware.js"; // your existing JWT middleware
 
 const router = express.Router();
 
-/* =========================================================
-   BASE: /api/v1/admin/restaurants
-========================================================= */
+/* ================================
+   Role Middleware: Restaurant Only
+=================================*/
+const restaurantProtect = (req, res, next) => {
+  if (req.user.role !== "restaurant") {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Only restaurant users allowed.",
+    });
+  }
+  next();
+};
 
-/* =============================
-   CREATE RESTAURANT+
-============================= */
-router.post(
-  "/create",
-  protect,
-  adminOnly,
-  upload.fields([
-    { name: "profileImage", maxCount: 1 },
-    { name: "coverImage", maxCount: 1 },
-    { name: "galleryImages", maxCount: 10 },
-  ]),
-  createRestaurant
-);
-/* =============================
-   GET ALL RESTAURANTS
-============================= */
-router.get("/all", protect, adminOnly, getAllRestaurants);
+/* ================================
+   ROUTES
+=================================*/
+// GET restaurant profile
+router.get("/profile", protect, restaurantProtect, getProfile);
 
-/* =============================
-   GET SINGLE RESTAURANT
-============================= */
-router.get("/:restaurantId", protect, adminOnly, getRestaurantById);
+// UPDATE restaurant profile
+router.put("/profile", protect, restaurantProtect, updateProfile);
+router.get("/profile-completion", protect, restaurantProtect, getProfileCompletion);
 
-/* =============================
-   UPDATE RESTAURANT
-============================= */
-router.patch(
-  "/:restaurantId",
-  protect,
-  adminOnly,
-  upload.none(),
-  updateRestaurant
-);
+// GET tracker stats
+// router.get("/tracker", protect, restaurantProtect, getTracker);
 
-/* =============================
-   DELETE RESTAURANT (SOFT DELETE)
-============================= */
-router.delete("/:restaurantId", protect, adminOnly, deleteRestaurant);
-
-/* =============================
-   UPDATE STATUS (Approve/Reject)
-============================= */
-router.patch(
-  "/:restaurantId/status",
-  protect,
-  adminOnly,
-  updateRestaurantStatus
-);
-
-/* =============================
-   TOGGLE OPEN
-============================= */
-router.patch(
-  "/:restaurantId/toggle-open",
-  protect,
-  adminOnly,
-  toggleRestaurantOpen
-);
-
-/* =============================
-   TOGGLE BUSY
-============================= */
-router.patch(
-  "/:restaurantId/toggle-busy",
-  protect,
-  adminOnly,
-  toggleRestaurantBusy
-);
-
-/* =========================================================
-   CATEGORY ROUTES
-========================================================= */
-
-/* Add Category */
-router.post(
-  "/:restaurantId/categories",
-  protect,
-  adminOnly,
-  addCategory
-);
-
-/* Update Category */
-router.patch(
-  "/:restaurantId/categories/:categoryId",
-  protect,
-  adminOnly,
-  updateCategory
-);
-
-/* Delete Category */
-router.delete(
-  "/:restaurantId/categories/:categoryId",
-  protect,
-  adminOnly,
-  deleteCategory
-);
-
-/* =========================================================
-   OFFER ROUTES
-========================================================= */
-
-/* Add Offer */
-router.post(
-  "/:restaurantId/offers",
-  protect,
-  adminOnly,
-  addOffer
-);
-
-/* Update Offer */
-router.patch(
-  "/:restaurantId/offers/:offerId",
-  protect,
-  adminOnly,
-  updateOffer
-);
-
-/* Delete Offer */
-router.delete(
-  "/:restaurantId/offers/:offerId",
-  protect,
-  adminOnly,
-  deleteOffer
-);
-
-/* =========================================================
-   SUBSCRIPTION ROUTE
-========================================================= */
-
-router.patch(
-  "/:restaurantId/subscription",
-  protect,
-  adminOnly,
-  updateSubscription
-);
 
 export default router;

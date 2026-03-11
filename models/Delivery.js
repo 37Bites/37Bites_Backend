@@ -15,6 +15,9 @@ const deliverySchema = new mongoose.Schema(
     vehicleType: {
       type: String,
     },
+    vehicleNumber: { // added field
+      type: String,
+    },
     licenseNumber: {
       type: String,
     },
@@ -24,12 +27,38 @@ const deliverySchema = new mongoose.Schema(
     address: {
       type: String,
     },
+    isAvailable: { // added field
+      type: Boolean,
+      default: true,
+    },
+    currentLocation: { // added field (GeoJSON)
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: { // [longitude, latitude]
+        type: [Number],
+        default: [0, 0],
+      },
+    },
+    rating: { // added field
+      type: Number,
+      default: 0,
+    },
+    totalDeliveries: { // added field
+      type: Number,
+      default: 0,
+    },
     isVerified: {
       type: Boolean,
       default: false,
-    },// vehicle number, is available, current location, ratings, total deliveries, etc can be added later as needed
+    },
   },
   { timestamps: true }
 );
+
+// optional: add 2dsphere index for geo queries
+deliverySchema.index({ currentLocation: "2dsphere" });
 
 export default mongoose.model("Delivery", deliverySchema);

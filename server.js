@@ -7,12 +7,15 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
-import restaurantRoutes from "./routes/restaurant.routes.js";
+import restaurantRoutes from "./routes/admin_restaurant.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
 import adminDeliveryRoutes from "./routes/admin_delivery.routes.js";
 import errorHandler from "./middlewares/error.middleware.js";
 import adminRestOwnerRoutes from "./routes/admin_restowner.routes.js";
+import restaurantRoutesself from "./routes/restaurant.routes.js";
+import deliveryrouting from "./routes/delivery.routes.js";
+import userrouteself from "./routes/user.self.routes.js";
 
 const app = express();
 
@@ -74,12 +77,18 @@ app.get("/", (req, res) => {
 ================================= */
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/userself",userrouteself)/// profile api for user
 app.use("/api/v1/restaurants", restaurantRoutes);
 app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/restaurantself", restaurantRoutesself); /// profile api for restaurant
 
 app.use("/api/v1/delivery", deliveryRoutes);
 app.use("/api/v1/admin/delivery", adminDeliveryRoutes);
+app.use("/api/v1/delivery",deliveryrouting) /// profile api for delivery
 app.use("/api/v1/admin/restowners", adminRestOwnerRoutes);
+
+
+
 /* ===============================
    ERROR HANDLER (ALWAYS LAST)
 ================================= */

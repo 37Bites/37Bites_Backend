@@ -64,3 +64,33 @@ export const protect = async (req, res, next) => {
     });
   }
 };
+// middleware/restaurantAuth.js
+export const restaurantProtect = (req, res, next) => {
+  if (req.user.role !== "restaurant") {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Only restaurant users allowed.",
+    });
+  }
+  next();
+};
+
+export const userProtect = (req, res, next) => {
+  if (req.user.role !== "user") {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Only normal users allowed.",
+    });
+  }
+  next();
+};
+
+export const deliveryProtect = (req, res, next) => {
+  if (req.user.role !== "delivery") {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Only delivery users allowed.",
+    });
+  }
+  next();
+};

@@ -1,107 +1,114 @@
 import Delivery from "../models/Delivery.js";
 
-/* ======================================
-   CREATE DELIVERY PROFILE
-====================================== */
-export const createDeliveryProfile = async (req, res) => {
+/* ===============================
+   GET DELIVERY PROFILE
+================================= */
+export const getDeliveryProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
+    let delivery = await Delivery.findOne({ user: req.user.id });
 
-    const existingProfile = await Delivery.findOne({ user: userId });
-
-    if (existingProfile) {
-      return res.status(400).json({
-        success: false,
-        message: "Delivery profile already exists",
-      });
-    }
-
-    const { name, vehicleType, licenseNumber, phone, address } = req.body;
-
-    const delivery = await Delivery.create({
-      user: userId,
-      name,
-      vehicleType,
-      licenseNumber,
-      phone,
-      address,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Delivery profile created successfully",
-      delivery,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-/* ======================================
-   GET MY DELIVERY PROFILE
-====================================== */
-export const getMyDeliveryProfile = async (req, res) => {
-  try {
-    const delivery = await Delivery.findOne({ user: req.user.id })
-      .populate("user", " mobile role");
-
+    // Auto-create if missing
     if (!delivery) {
-      return res.status(404).json({
-        success: false,
-        message: "Delivery profile not found",
+      delivery = await Delivery.create({
+        user: req.user.id,
+        name: req.user.data.name || "",
+        phone: req.user.data.mobile || "",
+        vehicleType: "",
+        vehicleNumber: "",
+        licenseNumber: "",
+        address: "",
+        isAvailable: true,
+        currentLocation: { type: "Point", coordinates: [0, 0] },
+        rating: 0,
+        totalDeliveries: 0,
+        isVerified: req.user.data.isVerified || false,
       });
     }
 
-    res.status(200).json({
-      success: true,
-      delivery,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.json({ success: true, data: delivery });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-/* ======================================
+/* ===============================
    UPDATE DELIVERY PROFILE
-====================================== */
+================================= */
 export const updateDeliveryProfile = async (req, res) => {
   try {
     const delivery = await Delivery.findOne({ user: req.user.id });
+    if (!delivery) return res.status(404).json({ success: false, message: "Delivery account not found" });
 
-    if (!delivery) {
-      return res.status(404).json({
-        success: false,
-        message: "Delivery profile not found",
-      });
-    }
+    const fields = [
+      "name",
+      "vehicleType",
+      "vehicleNumber",
+      "licenseNumber",
+      "phone",
+      "address",
+      "isAvailable",
+      "currentLocation",
+      "rating"
+    ];
 
-    const { name, vehicleType, licenseNumber, phone, address } = req.body;
-
-    delivery.name = name || delivery.name;
-    delivery.vehicleType = vehicleType || delivery.vehicleType;
-    delivery.licenseNumber = licenseNumber || delivery.licenseNumber;
-    delivery.phone = phone || delivery.phone;
-    delivery.address = address || delivery.address;
+    fields.forEach(field => {
+      if (req.body[field] !== undefined) delivery[field] = req.body[field];
+    });
 
     await delivery.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Profile updated successfully",
-      delivery,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.json({ success: true, message: "Profile updated", data: delivery });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
+/* ===============================
+   DELIVERY PROFILE COMPLETION
+================================= */
+export const getDeliveryProfileCompletion = async (req, res) => {
+  try {
+    const delivery = await Delivery.findOne({ user: req.user.id });
+    if (!delivery) return res.status(404).json({ success: false, message: "Delivery account not found" });
 
+    const fields = [
+      "name",
+      "vehicleType",
+      "vehicleNumber",
+      "licenseNumber",
+      "phone",
+      "address",
+      "currentLocation.coordinates"
+    ];
+
+    const getNested = (obj, path) =>
+      path === "currentLocation.coordinates"
+        ? obj.currentLocation?.coordinates
+        : path.split(".").reduce((o, k) => (o ? o[k] : null), obj);
+
+    let completed = 0;
+    fields.forEach(f => {
+      const val = getNested(delivery, f);
+      if (Array.isArray(val)) {
+        if (val.length > 0) completed++;
+      } else if (val !== null && val !== undefined && val !== "") {
+        completed++;
+      }
+    });
+
+    const completionPercentage = Math.round((completed / fields.length) * 100);
+
+    res.json({
+      success: true,
+      data: {
+        completionPercentage,
+        completedFields: completed,
+        totalFields: fields.length
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
